@@ -18,3 +18,7 @@ watson:
     url: https://gateway.watsonplatform.net
     password: <your-password>
     username: <your-username>
+
+  slack:
+    carebot:
+      api_token: <your-slack-api-token>
