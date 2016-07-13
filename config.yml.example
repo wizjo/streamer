@@ -6,6 +6,10 @@ twitter:
     access_token: <your_access_token>
     access_token_secret: <your_access_token_secret>
 
+alchemy:
+  api_base_url: https://access.alchemyapi.com/calls/text/TextGetCombinedData
+  api_key: <alchemy_api_key>
+
 watson:
   api_base_url: https://gateway.watsonplatform.net/tone-analyzer/api/v3/tone?version=2016-05-19
   credentials:
