@@ -5,6 +5,8 @@ require 'yaml'
 require 'yajl'
 require 'net/http'
 require 'json'
+require_relative './lib/watson/alchemy'
+require_relative './lib/watson/tone_analyzer'
 
 if ARGV[0].nil?
   puts "Please specify a term: \n" +
@@ -18,22 +20,11 @@ twitter_api_base_url = CONFIG['twitter']['api_base_url']
 twitter_oauth_config = CONFIG['twitter']['oauth']
 
 def analyze_tone(text)
-  watson_api_base_url = CONFIG['watson']['api_base_url']
-  watson_credentials = CONFIG['watson']['credentials']
-  puts '---------------'
+  puts '------------------'
   puts text
   return unless should_process(text, ARGV[0])
-
-  uri = URI(watson_api_base_url)
-  resp = Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == 'https') do |http|
-    req = Net::HTTP::Post.new(uri)
-    req.content_type = 'application/json'
-    req.body = { text: text }.to_json
-    req.basic_auth(watson_credentials['username'], watson_credentials['password'])
-    resp = http.request(req) # Net::HTTPResponse object
-  end
-
-  tone_categories = JSON.parse(resp.body)['document_tone']['tone_categories'] if resp.is_a?(Net::HTTPSuccess)
+  resp = Watson::ToneAnalyzer.new(CONFIG['watson']).analyze(text)
+  tone_categories = resp && resp['document_tone']['tone_categories']
 
   puts tone_categories.inspect
   tone_categories
