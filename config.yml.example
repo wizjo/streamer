@@ -1,0 +1,13 @@
+twitter:
+  api_base_url: https://stream.twitter.com
+  oauth:
+    consumer_key: <your_consumer_key>
+    consumer_secret: <your_consumer_secret>
+    access_token: <your_access_token>
+    access_token_secret: <your_access_token_secret>
+
+watson:
+  api_base_url: https://gateway.watsonplatform.net/tone-analyzer/api/v3/tone?version=2016-05-19
+  credentials:
+    password: <your_password>
+    username: <your_username>
