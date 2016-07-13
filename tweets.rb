@@ -19,12 +19,16 @@ CONFIG = YAML.load_file('config.yml')
 twitter_api_base_url = CONFIG['twitter']['api_base_url']
 twitter_oauth_config = CONFIG['twitter']['oauth']
 
-def analyze_tone(text)
+def analyze_text(text)
   puts '------------------'
   puts text
   return unless should_process(text, ARGV[0])
-  resp = Watson::ToneAnalyzer.new(CONFIG['watson']).analyze(text)
-  tone_categories = resp && resp['document_tone']['tone_categories']
+
+  alchemy_resp = Watson::Alchemy.new(CONFIG['watson']).analyze(text)
+  puts alchemy_resp.inspect
+
+  ta_resp = Watson::ToneAnalyzer.new(CONFIG['watson']).analyze(text)
+  tone_categories = ta_resp && ta_resp['document_tone']['tone_categories']
 
   puts tone_categories.inspect
   tone_categories
@@ -48,7 +52,7 @@ EM.run do
   # see: https://github.com/igrigorik/em-http-request/wiki/Redirects-and-Timeouts
   http = conn.get(path: path, inactivity_timeout: 0)
   parser = Yajl::Parser.new
-  parser.on_parse_complete = -> (obj) { analyze_tone(obj['text'])  }
+  parser.on_parse_complete = -> (obj) { analyze_text(obj['text'])  }
 
   http.stream do |chunk|
     parser << chunk
