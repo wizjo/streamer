@@ -46,4 +46,4 @@ watson_response = tone_analyzer.post('', {:text => text}.to_json)
 watson_parsed = JSON.parse(watson_response.body)
 
 return_value = {:tweet => text, :sentiment => alchemy_parsed['docSentiment'], :entities => alchemy_parsed['entities'], :tone => watson_parsed['document_tone']}
-puts return_value.inspect
+puts JSON.pretty_generate(return_value)
