@@ -14,3 +14,7 @@ watson:
     url: https://gateway.watsonplatform.net/tone-analyzer/api/v3/tone?version=2016-05-19
     password: <your-password>
     username: <your-username>
+  language_classifier:
+    url: https://gateway.watsonplatform.net
+    password: <your-password>
+    username: <your-username>
