@@ -7,6 +7,7 @@ require 'net/http'
 require 'json'
 require_relative './lib/watson/alchemy'
 require_relative './lib/watson/tone_analyzer'
+require_relative './lib/slack_client'
 
 if ARGV[0].nil?
   puts "Please specify a term: \n" +
@@ -16,22 +17,45 @@ if ARGV[0].nil?
 end
 
 CONFIG = YAML.load_file('config.yml')
-twitter_api_base_url = CONFIG['twitter']['api_base_url']
-twitter_oauth_config = CONFIG['twitter']['oauth']
+SLACK_CLIENT = SlackClient.new(CONFIG['slack']['carebot']['api_token'])
 
-def analyze_text(text)
+def analyze(obj)
   puts '------------------'
-  puts text
-  return unless should_process(text, ARGV[0])
+  puts obj['text']
+  return unless should_process(obj['text'], ARGV[0])
 
+  analyze_sentiment(obj)
+end
+
+def analyze_sentiment(obj)
+  text = obj['text']
   alchemy_resp = Watson::Alchemy.new(CONFIG['watson']).analyze(text)
-  puts alchemy_resp.inspect
 
+  sentiment = alchemy_resp && alchemy_resp['docSentiment']
+  return unless sentiment
+
+  if sentiment['type'] == 'negative'
+    tones = analyze_tones(obj)
+    screen_name = obj['user']['screen_name']
+
+    options = {
+      ts: obj['timestamp_ms'],
+      title: "Negative tweet from @#{screen_name}",
+      title_link: "https://twitter.com/#{screen_name}/status/#{obj['id']}",
+      tones: tones
+    }
+    post_to_slack(text, options)
+  elsif sentiment['type'] == 'neutral'
+    # TODO: handle negative
+  elsif sentiment['type'] == 'positive'
+    # TODO: handle positive
+  end
+end
+
+def analyze_tones(obj)
+  text = obj['text']
   ta_resp = Watson::ToneAnalyzer.new(CONFIG['watson']).analyze(text)
-  tone_categories = ta_resp && ta_resp['document_tone']['tone_categories']
-
-  puts tone_categories.inspect
-  tone_categories
+  ta_resp && ta_resp['document_tone']['tone_categories']
 end
 
 def should_process(text, input)
@@ -43,7 +67,15 @@ def should_process(text, input)
   end
 end
 
+def post_to_slack(text, options = {})
+  puts "posting to slack: "
+  puts options.inspect
+  # SLACK_CLIENT.post(text, options)
+end
+
 EM.run do
+  twitter_api_base_url = CONFIG['twitter']['api_base_url']
+  twitter_oauth_config = CONFIG['twitter']['oauth']
   conn = EventMachine::HttpRequest.new(twitter_api_base_url)
   conn.use EventMachine::Middleware::OAuth, twitter_oauth_config.map{ |k, v| [k.to_sym, v] }.to_h
 
@@ -52,7 +84,7 @@ EM.run do
   # see: https://github.com/igrigorik/em-http-request/wiki/Redirects-and-Timeouts
   http = conn.get(path: path, inactivity_timeout: 0)
   parser = Yajl::Parser.new
-  parser.on_parse_complete = -> (obj) { analyze_text(obj['text'])  }
+  parser.on_parse_complete = -> (obj) { analyze(obj)  }
 
   http.stream do |chunk|
     parser << chunk
