@@ -7,3 +7,4 @@ A simple streaming script that watches a keyword on Twitter, and does something 
 1. `bundle install`
 1. `cp config.yml.example config.yml`, and then fill in `config.yml` with your OAuth credentials.
 1. `bundle exec ruby tweets.rb <your-keyword>`
+1. To run the realtime Slack, `bundle exec ruby slack_realtime.rb`, and start talking to the bot in any channel or DM using `@carebot`.
