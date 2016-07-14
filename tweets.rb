@@ -29,6 +29,17 @@ end
 
 def analyze_sentiment(obj)
   text = obj['text']
+  screen_name = obj['user']['screen_name']
+  avatar = obj['user']['profile_image_url']
+  options = {
+      ts: obj['timestamp_ms'],
+      title: "Negative tweet from @#{screen_name}",
+      title_link: "https://twitter.com/#{screen_name}/status/#{obj['id']}",
+      author: screen_name,
+      author_icon: avatar
+    }
+  post_to_slack(text, options)
+
   alchemy_resp = Watson::Alchemy.new(CONFIG['watson']).analyze(text)
 
   sentiment = alchemy_resp && alchemy_resp['docSentiment']
