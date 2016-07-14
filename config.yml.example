@@ -19,6 +19,6 @@ watson:
     password: <your-password>
     username: <your-username>
 
-  slack:
-    carebot:
-      api_token: <your-slack-api-token>
+slack:
+  carebot:
+    api_token: <your-slack-api-token>
