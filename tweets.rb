@@ -38,19 +38,19 @@ def analyze_sentiment(obj)
       author: screen_name,
       author_icon: avatar
     }
-  post_to_slack(text, options)
 
   alchemy_resp = Watson::Alchemy.new(CONFIG['watson']).analyze(text)
 
   sentiment = alchemy_resp && alchemy_resp['docSentiment']
   return unless sentiment
 
-  if sentiment['type'] == 'negative'
+  if sentiment['type'] == 'negative' && sentiment['score'].to_f < -0.75
     tones = analyze_tones(obj)
     screen_name = obj['user']['screen_name']
 
     options = {
       ts: obj['timestamp_ms'],
+      sentiment_score: sentiment['score'],
       title: "Negative tweet from @#{screen_name}",
       title_link: "https://twitter.com/#{screen_name}/status/#{obj['id']}",
       tones: tones
@@ -80,8 +80,7 @@ end
 
 def post_to_slack(text, options = {})
   puts "posting to slack: "
-  puts options.inspect
-  # SLACK_CLIENT.post(text, options)
+  SLACK_CLIENT.post(text, options)
 end
 
 EM.run do
