@@ -11,20 +11,23 @@ module Watson
       @conn = Faraday.new(url: base_url) do |faraday|
         faraday.request :multipart
         faraday.request :url_encoded
-
-        faraday.response :logger
         faraday.adapter Faraday.default_adapter
       end
       @conn.basic_auth(username, password)
     end
 
-    def upload(path_to_csv)
-      payload = { training_data: Faraday::UploadIO.new(path_to_csv, 'text/csv'), training_metadata: {language: "en", name: "Care Classifier"}.to_json}
+    def upload(path_to_csv, classifier_name)
+      payload = {
+        training_data: Faraday::UploadIO.new(path_to_csv, 'text/plain'),
+        training_metadata: { language: 'en', name: classifier_name }.to_json
+      }
+      puts payload.inspect
       resp = @conn.post('/natural-language-classifier/api/v1/classifiers', payload)
-      @classifier = JSON.parse(resp.body) if resp && resp.status == 200
+      classifier = JSON.parse(resp.body) if resp && resp.status == 200
+      puts classifier.inspect
     end
 
-    def list_classifiers()
+    def list_classifiers
       resp = @conn.get("natural-language-classifier/api/v1/classifiers");
       JSON.parse(resp.body) if resp && resp.status == 200
     end

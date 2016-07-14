@@ -42,7 +42,7 @@ def analyze_sentiment(obj)
     options = {
       ts: obj['timestamp_ms'],
       sentiment_score: sentiment['score'],
-      title: "Negative tweet from @#{screen_name}",
+      title: "[tweetID #{obj['id']}] Negative tweet from @#{screen_name}",
       title_link: "https://twitter.com/#{screen_name}/status/#{obj['id']}",
       tones: tones,
       author: screen_name,

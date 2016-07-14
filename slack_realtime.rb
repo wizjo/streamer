@@ -1,9 +1,14 @@
+require 'fileutils'
 require 'slack-ruby-client'
 require 'yaml'
 require_relative './lib/twitter_client'
+require_relative './lib/watson/classifier'
 
 class SlackRealtimeClient
-  def initialize(api_key)
+  def initialize(api_key, output_path = 'out/training_data.csv')
+    @output_path = output_path
+    ensure_dir_exists(@output_path)
+
     Slack.configure { |config| config.token = api_key }
     Slack::RealTime::Client.config { |config| config.user_agent = 'Slack Ruby Client' }
     client = Slack::RealTime::Client.new
@@ -25,6 +30,13 @@ class SlackRealtimeClient
   end
 
   private
+
+  def ensure_dir_exists(output_path)
+    paths = output_path.split('/')
+    dir = paths.take(paths.length - 1).join('/')
+    FileUtils.mkdir_p dir
+  end
+
   def on_message_handler(data, client)
     return unless data.text
     text = data.text.downcase
@@ -39,13 +51,36 @@ class SlackRealtimeClient
       category = $~[:category]
       puts [tweet_id, category].inspect
       text = TWITTER_CLIENT.get_tweet_text(tweet_id)
+
+      append_to_file(@output_path, text, category)
+      refresh_training_data(@output_path)
       client.message channel: data.channel, text: "Classifying the following message as \"#{category}\":\n>#{text}"
     else
       client.message channel: data.channel, text: "To start training me, please say:\n@carebot classify <tweet_id> as <category>"
     end
   end
+
+  def append_to_file(file_name, text, category)
+    File.open(file_name, 'a') do |f|
+      f.write [text, category].map{ |str| "\"#{str}\"" }.join(',') + "\r\n"
+    end
+  end
+
+  def refresh_training_data(file_name, min_length = 20)
+    shell_output = `wc -l #{file_name} | awk -F ' ' '{ print $1 }'`
+    num_lines = shell_output.strip.to_i
+    return unless num_lines >= min_length
+
+    # Copy current training data to upload.csv, and clear current training data file.
+    upload_file = 'out/upload.csv'
+    classifier_name = "carebot"
+    FileUtils.mv(file_name, upload_file)
+    puts "-- uploading training set"
+    WATSON_CLASSIFIER.upload(upload_file, classifier_name)
+  end
 end
 
 CONFIG = YAML.load_file('config.yml')
 TWITTER_CLIENT = TwitterClient.new(CONFIG['twitter']['oauth'])
+WATSON_CLASSIFIER = Watson::Classifier.new(CONFIG['watson'])
 SlackRealtimeClient.new(CONFIG['slack']['carebot']['api_token'])
