@@ -32,13 +32,14 @@ module Watson
       JSON.parse(resp.body) if resp && resp.status == 200
     end
 
+    def classifier_id_by_name(name)
+      classifiers = list_classifiers
+      classifier = classifiers && classifiers['classifiers'].find{ |v| v['name'] == name }
+      classifier && classifier['classifier_id']
+    end
+
     def classify(text, cid)
-      if cid.nil?
-        puts 'No classifier id found'
-        exit 1
-      end
-      query = { text: text }
-      resp = @conn.get("/natural-language-classifier/api/v1/classifiers/#{cid}/classify", query);
+      resp = @conn.get("/natural-language-classifier/api/v1/classifiers/#{cid}/classify", { text: text });
       JSON.parse(resp.body) if resp && resp.status == 200
     end
   end

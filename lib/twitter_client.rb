@@ -14,4 +14,8 @@ class TwitterClient
     tweet && tweet.full_text
   end
 
+  def post(message, in_reply_to_status_id = nil)
+    @client.update(message, in_reply_to_status_id: in_reply_to_status_id)
+  end
+
 end

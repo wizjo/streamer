@@ -15,7 +15,7 @@ class SlackClient
       username: 'CareBot',
       attachments: [{
           "fallback": options[:title],
-          "color": "#EB4D5C",
+          "color": options[:color] || '#E8E8E8',
           "author_name": options[:author],
           "author_link": "https://twitter.com/#{options[:author]}",
           "author_icon": options[:author_icon],

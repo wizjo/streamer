@@ -38,7 +38,10 @@ class SlackRealtimeClient
   end
 
   def on_message_handler(data, client)
+    # Only listen to "#training" channel and when text is present
     return unless data.text
+    return unless data.channel == 'C1S0326RF'
+
     text = data.text.downcase
     return if data.user == 'U1RELQNSV' # Does not answer question from carebot itself
     return unless text.match(/@u1relqnsv/) # Does not handle requests unless carebot is at mentioned
@@ -46,6 +49,8 @@ class SlackRealtimeClient
     case text
     when /hi|hello/i
       client.message channel: data.channel, text: "Hi <@#{data.user}>!"
+    when /bye/i
+      client.message channel: data.channel, text: "See you later <@#{data.user}>! Have a good one!"
     when /classify (?<tweet_id>\d+) as (?<category>.+)/
       tweet_id = $~[:tweet_id]
       category = $~[:category]
@@ -54,7 +59,7 @@ class SlackRealtimeClient
 
       append_to_file(@output_path, text, category)
       refresh_training_data(@output_path)
-      client.message channel: data.channel, text: "Classifying the following message as \"#{category}\":\n>#{text}"
+      client.message channel: data.channel, text: "Classifying the following message as \"#{category}\":\n#{text}"
     else
       client.message channel: data.channel, text: "To start training me, please say:\n@carebot classify <tweet_id> as <category>"
     end
@@ -62,7 +67,8 @@ class SlackRealtimeClient
 
   def append_to_file(file_name, text, category)
     File.open(file_name, 'a') do |f|
-      f.write [text, category].map{ |str| "\"#{str}\"" }.join(',') + "\r\n"
+      # Escape newline characters in the message body to prserve the structure of CSV
+      f.write [text, category].map{ |str| "\"#{str.gsub("\n", "\\n")}\"" }.join(',') + "\r\n"
     end
   end
 
@@ -72,8 +78,8 @@ class SlackRealtimeClient
     return unless num_lines >= min_length
 
     # Copy current training data to upload.csv, and clear current training data file.
-    upload_file = 'out/upload.csv'
-    classifier_name = "carebot"
+    upload_file = 'out/training_data.csv'
+    classifier_name = "topic"
     FileUtils.mv(file_name, upload_file)
     puts "-- uploading training set"
     WATSON_CLASSIFIER.upload(upload_file, classifier_name)

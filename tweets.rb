@@ -7,7 +7,9 @@ require 'net/http'
 require 'json'
 require_relative './lib/watson/alchemy'
 require_relative './lib/watson/tone_analyzer'
+require_relative './lib/watson/classifier'
 require_relative './lib/slack_client'
+require_relative './lib/twitter_client'
 
 if ARGV[0].nil?
   puts "Please specify a term: \n" +
@@ -18,12 +20,15 @@ end
 
 CONFIG = YAML.load_file('config.yml')
 SLACK_CLIENT = SlackClient.new(CONFIG['slack']['carebot']['api_token'])
+TWITTER_CLIENT = TwitterClient.new(CONFIG['twitter']['oauth'])
+WATSON_CLASSIFIER = Watson::Classifier.new(CONFIG['watson'])
+EMOTION_CLASSIFIER_ID = WATSON_CLASSIFIER.classifier_id_by_name('carebot')
+TOPIC_CLASSIFIER_ID = WATSON_CLASSIFIER.classifier_id_by_name('topic')
 
 def analyze(obj)
+  return unless should_process(obj['text'], ARGV[0])
   puts '------------------'
   puts obj['text']
-  return unless should_process(obj['text'], ARGV[0])
-
   analyze_sentiment(obj)
 end
 
@@ -31,35 +36,62 @@ def analyze_sentiment(obj)
   text = obj['text']
 
   alchemy_resp = Watson::Alchemy.new(CONFIG['watson']).analyze(text)
-
   sentiment = alchemy_resp && alchemy_resp['docSentiment']
   return unless sentiment
 
-  if sentiment['type'] == 'negative' && sentiment['score'].to_f < -0.75
-    tones = analyze_tones(obj)
+  # Use Tone Analyzer
+  emotion_tone = get_emotion_tone(obj)
+  sentiment_score = sentiment['score'].to_f
+  # Confidence score is > 0.75
+  if sentiment_score.abs >= 0.75
+    topic_category = get_topic_category(obj)
+    puts topic_category.inspect
+    puts emotion_tone.inspect
+    puts "---- auto reply:"
+    puts obj.inspect
+    # TODO: auto reply
+    # TWITTER_CLIENT.post(message, in_reply_to_status_id)
+  elsif sentiment_score < 0.25
+    # If Watson is not confident *enough*, post to Slack for CS person to categorize
+    color = case sentiment['type']
+      when 'negative' then '#EB4D5C'
+      when 'neutral' then '#CACACA'
+      when 'positive' then '#42b879'
+      end
     screen_name = obj['user']['screen_name']
     avatar = obj['user']['profile_image_url']
     options = {
-      ts: obj['timestamp_ms'],
-      sentiment_score: sentiment['score'],
-      title: "[tweetID #{obj['id']}] Negative tweet from @#{screen_name}",
-      title_link: "https://twitter.com/#{screen_name}/status/#{obj['id']}",
-      tones: tones,
+      channel: 'training',
+      ts: obj['timestamp_ms'].to_i,
+      title: "[tweetID #{obj['id']}] tweet from @#{screen_name}",
+      color: color,
       author: screen_name,
       author_icon: avatar
     }
-    post_to_slack(text, options)
-  elsif sentiment['type'] == 'neutral'
-    # TODO: handle negative
-  elsif sentiment['type'] == 'positive'
-    # TODO: handle positive
+    post_to_slack([
+      text,
+      emotion_tone.to_json,
+      "https://twitter.com/#{screen_name}/status/#{obj['id']}"].join("\n"), options)
   end
+end
+
+def get_topic_category(obj)
+  topic_category = WATSON_CLASSIFIER.classify(obj['text'], TOPIC_CLASSIFIER_ID)
+  top_topic = topic_category['classes'].find{ |c| c['class_name'] == topic_category['top_class'] }
+  { name: top_topic['class_name'], confidence: top_topic['confidence'].to_f }
 end
 
 def analyze_tones(obj)
   text = obj['text']
   ta_resp = Watson::ToneAnalyzer.new(CONFIG['watson']).analyze(text)
   ta_resp && ta_resp['document_tone']['tone_categories']
+end
+
+def get_emotion_tone(obj)
+  tones = analyze_tones(obj)
+  emotion_tone = tones.find{ |tone| tone['category_id'] == 'emotion_tone' }
+  sorted = emotion_tone && emotion_tone['tones'].sort_by{ |tone| tone['score'].to_f }.reverse
+  sorted.map{ |h| [h['tone_name'], h['score']] }.to_h
 end
 
 def should_process(text, input)
@@ -76,30 +108,26 @@ def post_to_slack(text, options = {})
   SLACK_CLIENT.post(text, options)
 end
 
-EM.run do
-  twitter_api_base_url = CONFIG['twitter']['api_base_url']
-  twitter_oauth_config = CONFIG['twitter']['oauth']
-  conn = EventMachine::HttpRequest.new(twitter_api_base_url)
-  conn.use EventMachine::Middleware::OAuth, twitter_oauth_config.map{ |k, v| [k.to_sym, v] }.to_h
+begin
+  EM.run do
+    twitter_api_base_url = CONFIG['twitter']['api_base_url']
+    twitter_oauth_config = CONFIG['twitter']['oauth']
+    conn = EventMachine::HttpRequest.new(twitter_api_base_url)
+    conn.use EventMachine::Middleware::OAuth, twitter_oauth_config.map{ |k, v| [k.to_sym, v] }.to_h
 
-  path = "/1.1/statuses/filter.json?track=#{URI.escape(ARGV[0])}"
-  # Keep streaming connection open and disable inactivity timeout,
-  # see: https://github.com/igrigorik/em-http-request/wiki/Redirects-and-Timeouts
-  http = conn.get(path: path, inactivity_timeout: 0)
-  parser = Yajl::Parser.new
-  parser.on_parse_complete = -> (obj) { analyze(obj)  }
+    path = "/1.1/statuses/filter.json?track=#{URI.escape(ARGV[0])}"
+    # Keep streaming connection open and disable inactivity timeout,
+    # see: https://github.com/igrigorik/em-http-request/wiki/Redirects-and-Timeouts
+    http = conn.get(path: path, inactivity_timeout: 0)
+    parser = Yajl::Parser.new
+    parser.on_parse_complete = -> (obj) { analyze(obj) }
 
-  http.stream do |chunk|
-    parser << chunk
+    # em-http invokes callback function when the request is fully parsed
+    http.callback { EM.stop }
+    http.errback { EM.stop }
+    http.stream { |chunk| parser << chunk }
   end
-
-  # em-http invokes callback function when the request is fully parsed
-  http.callback do
-    EM.stop
-  end
-
-  http.errback do
-    puts "*** errback"
-    EM.stop
-  end
+rescue Exception => e
+  puts e.inspect
+  EM.stop
 end
