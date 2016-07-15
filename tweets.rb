@@ -22,7 +22,6 @@ CONFIG = YAML.load_file('config.yml')
 SLACK_CLIENT = SlackClient.new(CONFIG['slack']['carebot']['api_token'])
 TWITTER_CLIENT = TwitterClient.new(CONFIG['twitter']['oauth'])
 WATSON_CLASSIFIER = Watson::Classifier.new(CONFIG['watson'])
-EMOTION_CLASSIFIER_ID = WATSON_CLASSIFIER.classifier_id_by_name('carebot')
 TOPIC_CLASSIFIER_ID = WATSON_CLASSIFIER.classifier_id_by_name('topic')
 AUTO_REPLIES = JSON.parse(File.read('default_replies.json'))
 
