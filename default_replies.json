@@ -1,0 +1,48 @@
+{
+  "account": {
+    "joy": ["We are so happy to hear! Here are some tips to get your started: https://support.pokemongo.nianticlabs.com/hc/en-us/articles/221993967-Pok%C3%A9mon-GO-Trainer-guidelines"],
+    "fear": [],
+    "anger": [
+      "We are sorry to hear you are having account issues! Please see our FAQ page for guidelines or submit a ticket! https://support.pokemongo.nianticlabs.com/hc/en-us/sections/204864527-Account-maintenance-and-guidelines",
+      "We are so sorry :( You can check the latest updates and guidelines here: https://support.pokemongo.nianticlabs.com/hc/en-us/sections/204864527-Account-maintenance-and-guidelines"
+    ],
+    "sadness": [
+      "You can check out our permissions update here! https://support.pokemongo.nianticlabs.com/hc/en-us/articles/222648408-Permissions-update"
+    ],
+    "disgust": []
+  },
+  "server": {
+    "joy": [],
+    "fear": [],
+    "anger": [
+      "Due to the incredible number of Pokémon GO downloads, some Trainers are experiencing server connectivity issues. Don’t worry, our team is on it!"
+    ],
+    "sadness": [],
+    "disgust": []
+  },
+  "purchase": {
+    "joy": [],
+    "fear": [],
+    "anger": [
+      "Have any questions about purchasing items? See our guide: https://support.pokemongo.nianticlabs.com/hc/en-us/articles/221957868-Pok%C3%A9Coins-and-making-In-App-Purchases"
+    ],
+    "sadness": [
+      "Have any questions about purchasing items? See our guide: https://support.pokemongo.nianticlabs.com/hc/en-us/articles/221957868-Pok%C3%A9Coins-and-making-In-App-Purchases"
+    ],
+    "disgust": []
+  },
+  "general": {
+    "joy": [],
+    "fear": [],
+    "anger": [],
+    "sadness": [],
+    "disgust": []
+  },
+  "gameplay": {
+    "joy": [],
+    "fear": [],
+    "anger": [],
+    "sadness": [],
+    "disgust": []
+  }
+}

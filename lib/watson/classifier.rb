@@ -34,7 +34,7 @@ module Watson
 
     def classifier_id_by_name(name)
       classifiers = list_classifiers
-      classifier = classifiers && classifiers['classifiers'].find{ |v| v['name'] == name }
+      classifier = classifiers && classifiers['classifiers'].sort_by{ |v| DateTime.parse(v['created']) }.find{ |v| v['name'] == name }
       classifier && classifier['classifier_id']
     end
 

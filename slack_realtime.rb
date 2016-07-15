@@ -77,10 +77,10 @@ class SlackRealtimeClient
     num_lines = shell_output.strip.to_i
     return unless num_lines >= min_length
 
-    # Copy current training data to upload.csv, and clear current training data file.
-    upload_file = 'out/training_data.csv'
-    classifier_name = "topic"
-    FileUtils.mv(file_name, upload_file)
+    # Copy current training data to upload.csv
+    upload_file = 'out/upload.csv'
+    classifier_name = 'topic'
+    FileUtils.cp(file_name, upload_file)
     puts "-- uploading training set"
     WATSON_CLASSIFIER.upload(upload_file, classifier_name)
   end

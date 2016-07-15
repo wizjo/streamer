@@ -24,11 +24,14 @@ TWITTER_CLIENT = TwitterClient.new(CONFIG['twitter']['oauth'])
 WATSON_CLASSIFIER = Watson::Classifier.new(CONFIG['watson'])
 EMOTION_CLASSIFIER_ID = WATSON_CLASSIFIER.classifier_id_by_name('carebot')
 TOPIC_CLASSIFIER_ID = WATSON_CLASSIFIER.classifier_id_by_name('topic')
+AUTO_REPLIES = JSON.parse(File.read('default_replies.json'))
 
 def analyze(obj)
   return unless should_process(obj['text'], ARGV[0])
   puts '------------------'
   puts obj['text']
+  return unless %w(BonAeon jo_test1).include?(obj['user']['screen_name'])
+
   analyze_sentiment(obj)
 end
 
@@ -36,42 +39,52 @@ def analyze_sentiment(obj)
   text = obj['text']
 
   alchemy_resp = Watson::Alchemy.new(CONFIG['watson']).analyze(text)
+  puts "Alchemy response status: #{alchemy_resp['statusInfo']}"
+  return unless alchemy_resp['language'] == 'english'
   sentiment = alchemy_resp && alchemy_resp['docSentiment']
   return unless sentiment
 
   # Use Tone Analyzer
   emotion_tone = get_emotion_tone(obj)
   sentiment_score = sentiment['score'].to_f
+
+  tweet_link = "https://twitter.com/#{obj['user']['screen_name']}/status/#{obj['id']}"
+
   # Confidence score is > 0.75
   if sentiment_score.abs >= 0.75
     topic_category = get_topic_category(obj)
-    puts topic_category.inspect
-    puts emotion_tone.inspect
-    puts "---- auto reply:"
-    puts obj.inspect
-    # TODO: auto reply
-    # TWITTER_CLIENT.post(message, in_reply_to_status_id)
-  elsif sentiment_score < 0.25
-    # If Watson is not confident *enough*, post to Slack for CS person to categorize
+    topic = topic_category[:name].gsub('"', '')
+    emotion = emotion_tone.first.first.downcase
+    message = AUTO_REPLIES[topic] && AUTO_REPLIES[topic][emotion] && AUTO_REPLIES[topic][emotion].sample
+    message ||= "I see you are talking about #{topic} and you feel #{emotion}"
+    message = "@#{obj['user']['screen_name']}: " + message
+
+    puts '--- posting to Slack'
+    post_to_slack("Auto reply Re tweet: #{tweet_link}\n>#{message}", {
+      channel: 'classification',
+      title: message
+    })
+
+    return unless %w(BonAeon jo_test1).include?(obj['user']['screen_name'])
+    puts "--- posting to twitter"
+    TWITTER_CLIENT.post(message, obj['id'])
+  elsif Random.rand(100) > 80 || %w(BonAeon jo_test1).include?(obj['user']['screen_name'])
+    # If Watson is not confident *enough*, post to Slack for CS person to categorize and sample 20%
     color = case sentiment['type']
       when 'negative' then '#EB4D5C'
       when 'neutral' then '#CACACA'
       when 'positive' then '#42b879'
       end
-    screen_name = obj['user']['screen_name']
     avatar = obj['user']['profile_image_url']
     options = {
       channel: 'training',
       ts: obj['timestamp_ms'].to_i,
-      title: "[tweetID #{obj['id']}] tweet from @#{screen_name}",
+      title: "[tweetID #{obj['id']}] tweet from @#{obj['user']['screen_name']}",
       color: color,
-      author: screen_name,
+      author: obj['user']['screen_name'],
       author_icon: avatar
     }
-    post_to_slack([
-      text,
-      emotion_tone.to_json,
-      "https://twitter.com/#{screen_name}/status/#{obj['id']}"].join("\n"), options)
+    post_to_slack([text, emotion_tone.to_json, tweet_link].join("\n"), options)
   end
 end
 
