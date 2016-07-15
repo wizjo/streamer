@@ -12,13 +12,17 @@
     "disgust": []
   },
   "server": {
-    "joy": [],
+    "joy": ["We're glad to hear it works for you! Enjoy the game!"],
     "fear": [],
     "anger": [
       "Due to the incredible number of Pokémon GO downloads, some Trainers are experiencing server connectivity issues. Don’t worry, our team is on it!"
     ],
-    "sadness": [],
-    "disgust": []
+    "sadness": [
+      "Due to the incredible number of Pokémon GO downloads, some Trainers are experiencing server connectivity issues. Don’t worry, our team is on it!"
+    ],
+    "disgust": [
+      "We are so sorry to hear that! :("
+    ]
   },
   "purchase": {
     "joy": [],
@@ -32,10 +36,15 @@
     "disgust": []
   },
   "general": {
-    "joy": [],
+    "joy": ["We are so happy to hear! Here are some tips to get your started: https://support.pokemongo.nianticlabs.com/hc/en-us/articles/221993967-Pok%C3%A9mon-GO-Trainer-guidelines"],
     "fear": [],
-    "anger": [],
-    "sadness": [],
+    "anger": [
+      "We are sorry to hear you are having account issues! Please see our FAQ page for guidelines or submit a ticket! https://support.pokemongo.nianticlabs.com/hc/en-us/sections/204864527-Account-maintenance-and-guidelines",
+      "We are so sorry :( You can check the latest updates and guidelines here: https://support.pokemongo.nianticlabs.com/hc/en-us/sections/204864527-Account-maintenance-and-guidelines"
+    ],
+    "sadness": [
+      "You can check out our permissions update here! https://support.pokemongo.nianticlabs.com/hc/en-us/articles/222648408-Permissions-update"
+    ],
     "disgust": []
   },
   "gameplay": {
