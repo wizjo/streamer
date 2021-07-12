@@ -7,7 +7,8 @@ GEM
       minitest (~> 5.1)
       tzinfo (~> 1.1)
       zeitwerk (~> 2.2, >= 2.2.2)
-    addressable (2.4.0)
+    addressable (2.8.0)
+      public_suffix (>= 2.0.2, < 5.0)
     buftok (0.2.0)
     concurrent-ruby (1.1.6)
     cookiejar (0.3.3)
@@ -50,6 +51,7 @@ GEM
     minitest (5.14.1)
     multipart-post (2.0.0)
     naught (1.1.0)
+    public_suffix (4.0.6)
     simple_oauth (0.3.1)
     slack-ruby-client (0.7.5)
       activesupport
